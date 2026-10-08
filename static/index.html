@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lighter — Threshold Signatures</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="/"><span class="mark">◮</span>Lighter<span class="sub">Threshold Signatures</span></a>
+    <nav>
+      <a href="/" class="active">Ceremony</a>
+      <a href="/api.html">API</a>
+      <a href="https://github.com/elliottech/threshold-sig-poc" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <div class="header-right">
+      <span id="wallet" class="wallet-chip" style="display:none"><span class="dot"></span><span id="walletAddr"></span></span>
+      <button id="connect">Connect Wallet</button>
+      <button id="disconnect" class="danger" style="display:none">Disconnect</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>Threshold signature ceremony <span class="badge">PoC</span></h1>
+      <p>
+        Create a t-of-n signing group with your friends. A distributed key generation produces a single
+        group public key; any t participants can co-sign a message, and the aggregate is one ordinary
+        Schnorr signature — verified with the exact code the Lighter SDK uses.
+      </p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2><span class="step">1</span> Create a room</h2>
+        <p class="hint">Pick your multisig policy. You'll get a five-word room code to paste to your friends.</p>
+        <div class="row">
+          <label>Participants <select id="total" style="width:5em"></select></label>
+          <label>Threshold <select id="threshold" style="width:5em"></select></label>
+          <button id="create" class="green">Generate room</button>
+        </div>
+        <p class="hint" style="margin-top:10px">Optionally pin who can join: paste each participant's 0x address below (all boxes or none). The roster is bound into everyone's signed join statement.</p>
+        <div id="addrBoxes"></div>
+        <div id="created"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">2</span> Join a room</h2>
+        <p class="hint">Got a code from a friend? Enter it here, connect your wallet on the room page, and sign in.</p>
+        <div class="row">
+          <input id="roomInput" placeholder="apple-carrot-thumbs-fjord-cedar" style="flex:1;min-width:260px">
+          <button id="go">Enter room</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Your rooms</h2>
+      <p class="hint" id="myRoomsHint">Rooms you created or joined. Connect your wallet to also pull the ones you joined from other browsers.</p>
+      <div id="myRooms" class="muted">loading…</div>
+    </div>
+
+    <details style="margin-top:18px">
+      <summary class="muted" style="cursor:pointer">All rooms on this server</summary>
+      <div class="card" style="margin-top:10px">
+        <div id="rooms" class="muted">loading…</div>
+      </div>
+    </details>
+  </main>
+
+  <footer>
+    <span class="live"><span class="dot"></span>Online / PoC</span>
+    <a href="/api.html">REST API</a>
+    <a href="https://github.com/elliottech/threshold-sig-poc">Source</a>
+    <span class="right">ECgFp5 · Schnorr · FROST-style DKG</span>
+  </footer>
+
+  <script src="/wallet.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const MAX_PARTICIPANTS = 8;
+
+    function fillSelect(sel, from, to, selected) {
+      sel.innerHTML = '';
+      for (let i = from; i <= to; i++) {
+        const o = document.createElement('option');
+        o.value = i;
+        o.textContent = i;
+        if (i === selected) o.selected = true;
+        sel.appendChild(o);
+      }
+    }
+
+    function renderAddrBoxes() {
+      const n = +$('total').value;
+      const prev = addrValues(true);
+      const me = (window.walletAccount || '').toLowerCase();
+      $('addrBoxes').innerHTML = '';
+      for (let i = 1; i <= n; i++) {
+        const mine = i === 1 && me;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.style.marginTop = '8px';
+        row.innerHTML = `<span class="muted" style="width:8em">${mine ? 'You' : 'Participant ' + i}</span>` +
+          `<input class="addr-box" placeholder="0x... (optional)" style="flex:1;min-width:260px"${mine ? ' readonly' : ''}>`;
+        row.querySelector('input').value = mine ? me : (prev[i - 1] || '');
+        $('addrBoxes').appendChild(row);
+      }
+    }
+
+    function addrValues(raw) {
+      const boxes = [...document.querySelectorAll('.addr-box')];
+      const vals = boxes.map((el) => el.value.trim().toLowerCase());
+      if (raw) return vals;
+      // The auto-filled "You" box alone doesn't count: leaving the rest empty means an open room.
+      const manual = boxes.filter((el) => !el.readOnly).map((el) => el.value.trim());
+      if (!manual.filter(Boolean).length) return [];
+      if (vals.filter(Boolean).length !== vals.length) throw new Error('fill in every participant address, or leave the boxes empty for an open room');
+      return vals;
+    }
+
+    function syncPolicy() {
+      const n = +$('total').value;
+      const t = Math.min(+($('threshold').value || n), n);
+      fillSelect($('threshold'), 1, n, t);
+      renderAddrBoxes();
+    }
+
+    fillSelect($('total'), 1, MAX_PARTICIPANTS, 4);
+    fillSelect($('threshold'), 1, 4, 3);
+    renderAddrBoxes();
+    $('total').onchange = syncPolicy;
+
+    $('create').onclick = async () => {
+      try {
+        const res = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            threshold: +$('threshold').value,
+            total: +$('total').value,
+            addresses: addrValues(),
+          }),
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        rememberRoom(data.room);
+        loadMyRooms();
+        $('created').innerHTML =
+          `<div class="roomcode"><span>${data.room}</span>` +
+          `<span class="row"><button class="ghost copybtn" onclick="navigator.clipboard.writeText('${data.room}')">Copy</button>` +
+          `<a href="/room/${data.room}"><button class="copybtn">Enter →</button></a></span></div>` +
+          `<p class="hint">${data.threshold}-of-${data.total} — share the code, then enter the room and connect your wallet.</p>`;
+      } catch (e) {
+        alert(e.message);
+      }
+    };
+
+    $('go').onclick = () => {
+      const room = $('roomInput').value.trim();
+      if (room) location.href = '/room/' + room;
+    };
+    $('roomInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click(); });
+
+    function rememberRoom(room) {
+      const mine = JSON.parse(localStorage.getItem('tsig-my-rooms') || '[]');
+      if (!mine.includes(room)) localStorage.setItem('tsig-my-rooms', JSON.stringify([room, ...mine]));
+    }
+
+    function roomHTML(r) {
+      const dkg = r.groupPk ? '<span class="ok">dkg done</span>' : `<span class="warn">${r.joined}/${r.total} joined</span>`;
+      return `<div class="proposal"><div>
+          <div class="msg"><a class="mono" style="font-size:14px;color:var(--text);text-decoration:none" href="/room/${r.room}">${r.room}</a></div>
+          <div class="meta">${r.threshold}-of-${r.total} · ${r.proposals} proposal${r.proposals === 1 ? '' : 's'} · ${dkg}</div>
+        </div>
+        <div class="actions"><a href="/room/${r.room}"><button class="ghost">Open</button></a></div></div>`;
+    }
+
+    async function fetchRooms(qs) {
+      const res = await fetch('/api/rooms' + (qs || ''));
+      const data = await res.json();
+      return data.rooms || [];
+    }
+
+    // "Your rooms": rooms created/visited in this browser (localStorage) + rooms the connected wallet joined.
+    async function loadMyRooms() {
+      try {
+        const local = JSON.parse(localStorage.getItem('tsig-my-rooms') || '[]');
+        const all = await fetchRooms();
+        const byId = Object.fromEntries(all.map((r) => [r.room, r]));
+        const mine = new Map();
+        if (window.walletAccount) {
+          for (const r of await fetchRooms('?address=' + window.walletAccount)) mine.set(r.room, r);
+        }
+        for (const id of local) if (byId[id]) mine.set(id, byId[id]);
+        if (!mine.size) { $('myRooms').textContent = window.walletAccount ? 'none yet — create or join one' : 'none yet — create one, or connect your wallet'; return; }
+        $('myRooms').innerHTML = [...mine.values()].map(roomHTML).join('');
+      } catch (e) {
+        $('myRooms').textContent = e.message;
+      }
+    }
+
+    async function loadAllRooms() {
+      try {
+        const rooms = await fetchRooms();
+        if (!rooms.length) { $('rooms').textContent = 'no rooms yet — create the first one'; return; }
+        $('rooms').innerHTML = rooms.slice(0, 20).map(roomHTML).join('');
+      } catch (e) {
+        $('rooms').textContent = e.message;
+      }
+    }
+
+    window.onWalletConnect = () => { renderAddrBoxes(); loadMyRooms(); };
+    window.onWalletDisconnect = () => { renderAddrBoxes(); loadMyRooms(); };
+    loadMyRooms();
+    loadAllRooms();
+  </script>
+</body>
+</html>

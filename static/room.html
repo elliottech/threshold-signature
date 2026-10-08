@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Room — Lighter Threshold Signatures</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="/"><span class="mark">◮</span>Lighter<span class="sub">Threshold Signatures</span></a>
+    <nav>
+      <a href="/">Ceremony</a>
+      <a href="/api.html">API</a>
+      <a href="https://github.com/elliottech/threshold-sig-poc" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <div class="header-right">
+      <span id="wallet" class="wallet-chip" style="display:none"><span class="dot"></span><span id="walletAddr"></span></span>
+      <button id="connect" style="display:none">Connect Wallet</button>
+      <button id="disconnect" class="danger" style="display:none">Disconnect</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1 id="title" class="mono" style="font-size:24px">room</h1>
+      <p class="row">
+        <span id="statusChip" class="status-chip joining"><span class="dot"></span><span id="status">loading…</span></span>
+        <span id="me" class="muted mono"></span>
+      </p>
+    </div>
+
+    <div class="card" id="joinCard">
+      <h2>Join this ceremony</h2>
+      <p class="hint">
+        Connect MetaMask and approve the keystore unlock (an EIP-712 signature bound to this app).
+        A random seed is generated locally, encrypted under that signature and kept in this
+        browser's keystore — your wallet alone cannot derive room secrets, and rejoining from this
+        browser recovers your state. Moving browsers? Export the keystore below and import it there.
+      </p>
+      <button id="join" class="green">Connect MetaMask &amp; join</button>
+      <p class="hint" style="margin-top:10px">
+        <a href="#" id="exportKs">Export keystore</a> · <a href="#" id="importKs">Import keystore</a>
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Participants</h2>
+      <div id="participants" class="muted">loading…</div>
+      <div id="groupPk"></div>
+    </div>
+
+    <div class="card" id="proposeCard" style="display:none">
+      <h2>Proposals</h2>
+      <p class="hint">Propose the 40-byte Lighter transaction hash to sign (hex, 0x optional); when the threshold of signers commits, partials aggregate into one Schnorr signature — a valid L2 signature for that transaction.</p>
+      <div class="row">
+        <input id="msgInput" placeholder="40-byte Lighter tx hash, e.g. 0xa91c…4f34a2" style="flex:1;min-width:260px">
+        <button id="propose" class="green">＋ Propose</button>
+      </div>
+      <div id="proposals"></div>
+    </div>
+    <div id="backupModal" class="modal-overlay" style="display:none">
+      <div class="modal">
+        <h2>Back up your room key now</h2>
+        <p class="hint">
+          Your signing share for this room is protected by a keystore that exists <b>only in this
+          browser</b>. Save the file below somewhere safe — it is the only way to access this room
+          from another browser or device, and the only backup if this browser's storage is cleared.
+          Without it, your share is unrecoverable.
+        </p>
+        <textarea id="backupBlob" class="mono" readonly rows="4" style="width:100%;resize:vertical"></textarea>
+        <p class="hint">Keep it private: together with your wallet, it fully controls your participation in this room.</p>
+        <div class="row" style="margin-top:10px">
+          <button id="backupDownload" class="green">Download key file</button>
+          <button id="backupCopy">Copy to clipboard</button>
+          <button id="backupClose" class="danger">I saved it — close</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span class="live"><span class="dot"></span>Online / PoC</span>
+    <a href="/api.html">REST API</a>
+    <a href="https://github.com/elliottech/threshold-sig-poc">Source</a>
+    <span class="right">ECgFp5 · Schnorr · FROST-style DKG</span>
+  </footer>
+
+  <script src="/wasm_exec.js"></script>
+  <script src="/wallet.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

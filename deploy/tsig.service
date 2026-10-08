@@ -1,0 +1,40 @@
+[Unit]
+Description=Threshold signature coordination server
+After=network.target
+
+[Service]
+Type=simple
+User=tsig
+Group=tsig
+StateDirectory=tsig
+WorkingDirectory=/var/lib/tsig
+ExecStart=/opt/tsig/tsig-server -addr 127.0.0.1:9000 -db /var/lib/tsig/tsig.db
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=25
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

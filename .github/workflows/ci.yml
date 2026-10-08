@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+      - run: go mod verify
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: bash scripts/build.sh
+      - name: HTTP ceremony integration
+        run: bash scripts/test-e2e.sh

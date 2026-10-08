@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API — Lighter Threshold Signatures</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="/"><span class="mark">◮</span>Lighter<span class="sub">Threshold Signatures</span></a>
+    <nav>
+      <a href="/">Ceremony</a>
+      <a href="/api.html" class="active">API</a>
+      <a href="https://github.com/elliottech/threshold-sig-poc" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1>REST API</h1>
+      <p>
+        Everything the web UI and the <span class="mono">tsig</span> CLI do goes through these endpoints.
+        All bodies are JSON. Errors come back as <span class="mono">{"error": "..."}</span>.
+        Scalars, points and signatures are little-endian hex (points 40 bytes, signatures 80 bytes: s ‖ e).
+        Mutating calls (join / dkg / commit / partial) are authenticated: join carries a MetaMask
+        <span class="mono">personal_sign</span> over the join statement, and the rest carry a
+        <span class="mono">sig</span> field — an ECgFp5 Schnorr signature over the canonical request payload,
+        verified against the auth pubkey registered at join.
+      </p>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/rooms</span></div>
+      <p class="desc">
+        Create a room with a t-of-n policy. Optionally pass <span class="mono">addresses</span> —
+        an allowlist of exactly n ETH addresses: only they can join, and the roster is bound
+        into every participant's signed join statement. Returns the five-word room code.
+      </p>
+      <pre>curl -X POST /api/rooms -d '{"threshold": 3, "total": 4, "addresses": ["0xabc...", ...]}'
+→ {"room": "apple-carrot-thumbs-fjord-cedar", "threshold": 3, "total": 4, "allowed": [...]}</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method get">GET</span><span class="path">/api/rooms</span></div>
+      <p class="desc">List every room with participant / proposal counts and DKG status.</p>
+      <pre>curl /api/rooms
+→ {"rooms": [{"room": "...", "threshold": 3, "total": 4, "joined": 4, "proposals": 2, "groupPk": "..."}]}</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method get">GET</span><span class="path">/api/rooms/{room}</span></div>
+      <p class="desc">
+        Full room state: participants (address, auth/enc pubkeys, join signature, DKG commitments,
+        proof-of-knowledge), all DKG share <em>ciphertexts</em> (<span class="mono">"from-to" → ECIES blob</span>,
+        only decryptable by the recipient), the group public key, and all proposals with their
+        request nonce, FROST nonce commitment pairs, partial signatures, final signature and validity.
+      </p>
+      <pre>curl /api/rooms/apple-carrot-thumbs-fjord-cedar</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/rooms/{room}/join</span></div>
+      <p class="desc">
+        Join with an ETH address, per-room ECgFp5 auth + encryption pubkeys, and a MetaMask
+        <span class="mono">personal_sign</span> signature over the canonical join statement binding them all,
+        including the room's t-of-n policy and (if set) the address allowlist roster.
+        The server verifies by ecrecover and rejects unlisted addresses; every client re-verifies.
+        Rejoining returns the same index.
+      </p>
+      <pre>curl -X POST /api/rooms/{room}/join -d '{"address": "0xabc...", "authPk": "...", "encPk": "...", "ethSig": "0x..."}'
+→ {"idx": 2}</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/rooms/{room}/dkg</span></div>
+      <p class="desc">
+        Post your DKG round: t polynomial commitments (A_k = a_k·G), a Schnorr proof-of-knowledge of a_0
+        (rogue-key protection, verified server-side), and a share f(j) for every participant j encrypted
+        to their encryption pubkey. Recipients decrypt and verify their own shares; once all n rounds are
+        in, the group public key Σ A_0 is derived (and recomputed client-side).
+      </p>
+      <pre>curl -X POST /api/rooms/{room}/dkg -d '{"idx": 1, "commitments": ["..."], "pok": {"r": "...", "mu": "..."}, "shares": {"1": "&lt;ciphertext&gt;", ...}, "sig": "..."}'</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/rooms/{room}/proposals</span></div>
+      <p class="desc">Propose a 40-byte Lighter transaction hash to sign (hex, 0x optional); the room signs
+        the hash directly, so the aggregate signature is a valid L2 signature for the transaction.
+        Requires the DKG to be finished. <span class="mono">nonce</span> is a client-chosen random
+        value (16+ characters) that makes the signed request unique, so a captured request replayed
+        against the server returns the original proposal instead of creating a duplicate. The request
+        must be signed with the proposer's auth key over
+        <code>propose/{room}/{proposer}/{message}/{nonce}</code>; the server verifies it, enforces
+        uniqueness on (room, proposer, nonce), and clients re-verify attribution locally.</p>
+      <pre>curl -X POST /api/rooms/{room}/proposals -d '{"message": "0x1234...abcd", "proposer": 1, "nonce": "&lt;random, 16+ chars&gt;", "sig": "..."}'
+→ {"id": 7}
+→ {"id": 7, "replayed": true}   # same (room, proposer, nonce) submitted again</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/proposals/{id}/commit</span></div>
+      <p class="desc">
+        Post your FROST nonce commitment pair: hiding D_j = d_j·G and binding E_j = e_j·G.
+        When t commitments are in, the signer set locks (first t committers by index).
+      </p>
+      <pre>curl -X POST /api/proposals/{id}/commit -d '{"idx": 1, "d": "&lt;40-byte hex&gt;", "e": "&lt;40-byte hex&gt;", "sig": "..."}'</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/proposals/{id}/partial</span></div>
+      <p class="desc">
+        Post your FROST partial signature z_j = d_j + ρ_j·e_j − c·λ_j·x_j (ρ_j is the binding factor over
+        message + signer set + all commitments). The server verifies it against your public share before
+        accepting. Only locked signers may post.
+      </p>
+      <pre>curl -X POST /api/proposals/{id}/partial -d '{"idx": 1, "s": "&lt;40-byte hex&gt;", "sig": "..."}'</pre>
+    </div>
+
+    <div class="endpoint">
+      <div class="line"><span class="method post">POST</span><span class="path">/api/proposals/{id}/execute</span></div>
+      <p class="desc">
+        Aggregate z = Σ z_j into the final 80-byte Schnorr signature (z, c) and verify it against the
+        group public key with the SDK's <span class="mono">schnorr.Validate</span>. Stores and returns the result.
+      </p>
+      <pre>curl -X POST /api/proposals/{id}/execute -d '{}'
+→ {"sig": "&lt;80-byte hex&gt;", "valid": true}</pre>
+    </div>
+
+    <div class="card" style="margin-top:24px">
+      <h2>CLI</h2>
+      <p class="hint">
+        Prefer a terminal? <span class="mono">go build ./cmd/tsig</span> from the
+        <a href="https://github.com/elliottech/threshold-sig-poc" style="color:var(--green)">repo</a>, drop a
+        <span class="mono">.env</span> with <span class="mono">TSIG_SERVER</span> and <span class="mono">TSIG_SEED</span>,
+        then: <span class="mono">tsig create · list · join · status · dkg · propose · sign · execute · watch</span>.
+      </p>
+    </div>
+  </main>
+
+  <footer>
+    <span class="live"><span class="dot"></span>Online / PoC</span>
+    <a href="/api.html">REST API</a>
+    <a href="https://github.com/elliottech/threshold-sig-poc">Source</a>
+    <span class="right">ECgFp5 · Schnorr · FROST (RFC 9591 structure)</span>
+  </footer>
+</body>
+</html>

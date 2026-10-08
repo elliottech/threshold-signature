@@ -1,0 +1,47 @@
+# Build artifacts (keep source directories such as cmd/tsig/ tracked)
+/dist/
+/tsig
+/tsig-server
+/threshold-sig-poc
+/tspoc
+/static/main.wasm
+*.exe
+*.test
+
+# Test coverage and profiling output
+/coverage.out
+/coverage.html
+*.prof
+
+# SQLite databases and journals
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.log
+
+# Local configuration (retain the documented template)
+.env
+.env.*
+!.env.example
+
+# Identity keys, browser keystore exports, and one-shot nonce journals
+# Custom identity/backup filenames must be ignored explicitly before use.
+tsig-key.json
+tsig-keystore-*.json
+*.pem
+*.key
+*.state.json
+*.state.json.lock
+.tsig-state-*
+
+# Local tooling and editor/OS files
+.claude/
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+*~
