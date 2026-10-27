@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	curve "github.com/elliottech/poseidon_crypto/curve/ecgfp5"
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 	"log"
 	"net/http"
 	"sort"

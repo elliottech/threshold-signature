@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 	"log"
 	"net/http"
 	"slices"

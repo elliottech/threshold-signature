@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 )
 
 // TestCreateRoomRejectsInvalidPolicy checks every boundary of the t-of-n policy validation, not

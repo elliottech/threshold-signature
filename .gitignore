@@ -2,7 +2,7 @@
 /dist/
 /tsig
 /tsig-server
-/threshold-sig-poc
+/threshold-signature
 /tspoc
 /static/main.wasm
 *.exe
