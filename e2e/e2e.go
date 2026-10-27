@@ -14,8 +14,8 @@ import (
 
 	curve "github.com/elliottech/poseidon_crypto/curve/ecgfp5"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
-	"github.com/elliottech/threshold-sig-poc/tsigclient"
+	"github.com/elliottech/threshold-signature/frost"
+	"github.com/elliottech/threshold-signature/tsigclient"
 )
 
 var base = flag.String("base", "http://localhost:9000", "server base URL")

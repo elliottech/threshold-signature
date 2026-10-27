@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
-	"github.com/elliottech/threshold-sig-poc/tsigclient"
+	"github.com/elliottech/threshold-signature/frost"
+	"github.com/elliottech/threshold-signature/tsigclient"
 )
 
 func TestLoadEnvPrefersFileOverEnvironment(t *testing.T) {

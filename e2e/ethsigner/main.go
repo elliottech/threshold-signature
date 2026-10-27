@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 )
 
 func main() {

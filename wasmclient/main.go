@@ -22,12 +22,12 @@ import (
 	curve "github.com/elliottech/poseidon_crypto/curve/ecgfp5"
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 )
 
 func main() {
 	c := make(chan struct{})
-	println("threshold-sig-poc wasm started")
+	println("threshold-signature wasm started")
 	js.Global().Set("_tsKeystoreSeal", js.FuncOf(keystoreSeal))
 	js.Global().Set("_tsKeystoreOpen", js.FuncOf(keystoreOpen))
 	js.Global().Set("_tsKeys", js.FuncOf(keys))

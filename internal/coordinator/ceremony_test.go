@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	curve "github.com/elliottech/poseidon_crypto/curve/ecgfp5"
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 )
 
 func doJSON(t *testing.T, h http.Handler, method, path string, body any) (*httptest.ResponseRecorder, map[string]any) {

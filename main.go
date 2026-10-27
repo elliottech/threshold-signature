@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/elliottech/threshold-sig-poc/internal/coordinator"
+	"github.com/elliottech/threshold-signature/internal/coordinator"
 )
 
 //go:embed static

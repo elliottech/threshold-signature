@@ -10,8 +10,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/elliottech/threshold-sig-poc/internal/coordinator"
-	"github.com/elliottech/threshold-sig-poc/tsigclient"
+	"github.com/elliottech/threshold-signature/internal/coordinator"
+	"github.com/elliottech/threshold-signature/tsigclient"
 )
 
 // startTestCoordinator runs a real coordinator server in-process on a loopback port and returns

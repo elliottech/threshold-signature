@@ -1,4 +1,4 @@
-// Package tsigclient is a small typed HTTP client for the threshold-sig-poc REST API,
+// Package tsigclient is a small typed HTTP client for the threshold-signature REST API,
 // shared by the CLI and the e2e tests.
 package tsigclient
 
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 )
 
 type Client struct {

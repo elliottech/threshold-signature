@@ -1,4 +1,4 @@
-module github.com/elliottech/threshold-sig-poc
+module github.com/elliottech/threshold-signature
 
 go 1.26.4
 

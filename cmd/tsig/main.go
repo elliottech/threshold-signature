@@ -1,4 +1,4 @@
-// Command tsig is a CLI client for the threshold-sig-poc server. It reads its config from a
+// Command tsig is a CLI client for the threshold-signature server. It reads its config from a
 // .env file (see .env.example) and drives the whole ceremony over the REST API: create/list
 // rooms, join, run the DKG round, propose messages, sign and execute proposals.
 package main
@@ -21,8 +21,8 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	curve "github.com/elliottech/poseidon_crypto/curve/ecgfp5"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
-	"github.com/elliottech/threshold-sig-poc/tsigclient"
+	"github.com/elliottech/threshold-signature/frost"
+	"github.com/elliottech/threshold-signature/tsigclient"
 )
 
 const usage = `tsig - threshold signature ceremony CLI

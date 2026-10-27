@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elliottech/threshold-sig-poc/frost"
+	"github.com/elliottech/threshold-signature/frost"
 )
 
 func TestRejectsErrorStatusWithoutErrorField(t *testing.T) {
